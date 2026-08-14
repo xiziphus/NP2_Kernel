@@ -65,6 +65,15 @@ if [ "${#merge_frags[@]}" -gt 0 ]; then
   fi
 fi
 
+# --- Docker fragment (added in fork): merge our container options ---
+DOCKER_FRAG="${GITHUB_WORKSPACE:-..}/configs/docker.config"
+if [ -f "$DOCKER_FRAG" ]; then
+  echo "Merging Docker config fragment: $DOCKER_FRAG"
+  scripts/kconfig/merge_config.sh -m -O out out/.config "$DOCKER_FRAG"
+else
+  echo "WARNING: docker.config not found at $DOCKER_FRAG" >&2
+fi
+
 EXTRA_CFG="out/ci-extra.config"
 : > "${EXTRA_CFG}"
 echo "CONFIG_KSU=y" >> "${EXTRA_CFG}"
@@ -79,6 +88,13 @@ fi
 
 cat "${EXTRA_CFG}" >> out/.config
 make ${MAKE_ARGS} olddefconfig
+# fork: verify the critical Docker options survived olddefconfig
+for _o in PID_NS USER_NS CGROUP_PIDS NETFILTER_XT_MATCH_ADDRTYPE POSIX_MQUEUE OVERLAY_FS VETH BRIDGE NF_NAT; do
+  if ! grep -q "^CONFIG_${_o}=y" out/.config; then
+    echo "FATAL: CONFIG_${_o} did not survive olddefconfig" >&2; exit 1
+  fi
+done
+echo "Docker config retention: all critical options present"
 [ -f scripts/setlocalversion ] && sed -i 's/-dirty//g' scripts/setlocalversion || true
 
 JOBS=$(( $(nproc) / 2 ))
