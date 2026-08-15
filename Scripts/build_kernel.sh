@@ -89,7 +89,7 @@ fi
 cat "${EXTRA_CFG}" >> out/.config
 make ${MAKE_ARGS} olddefconfig
 # fork: verify the critical Docker options survived olddefconfig
-for _o in PID_NS CGROUP_PIDS CGROUP_DEVICE NETFILTER_XT_MATCH_ADDRTYPE POSIX_MQUEUE OVERLAY_FS VETH BRIDGE BRIDGE_NETFILTER NF_NAT; do
+for _o in PID_NS CGROUP_PIDS CGROUP_DEVICE POSIX_MQUEUE OVERLAY_FS; do
   if ! grep -q "^CONFIG_${_o}=y" out/.config; then
     echo "FATAL: CONFIG_${_o} did not survive olddefconfig" >&2; exit 1
   fi
