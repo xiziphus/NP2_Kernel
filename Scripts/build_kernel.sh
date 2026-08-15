@@ -65,18 +65,16 @@ if [ "${#merge_frags[@]}" -gt 0 ]; then
   fi
 fi
 
-# --- Docker fragment (added in fork): merge our container options ---
-DOCKER_FRAG="${GITHUB_WORKSPACE:-..}/configs/docker.config"
-if [ -f "$DOCKER_FRAG" ]; then
-  echo "Merging Docker config fragment: $DOCKER_FRAG"
-  scripts/kconfig/merge_config.sh -m -O out out/.config "$DOCKER_FRAG"
-else
-  echo "WARNING: docker.config not found at $DOCKER_FRAG" >&2
-fi
-
+# --- Docker options (append variant): add via EXTRA_CFG like KSU, NO merge_config.
+#     Tests whether merge_config.sh's internal alldefconfig was the boot-breaker. ---
 EXTRA_CFG="out/ci-extra.config"
 : > "${EXTRA_CFG}"
 echo "CONFIG_KSU=y" >> "${EXTRA_CFG}"
+# Docker container options (v2 core set) appended through the same path as KSU:
+for _d in CONFIG_PID_NS CONFIG_CGROUP_PIDS CONFIG_CGROUP_DEVICE CONFIG_POSIX_MQUEUE \
+          CONFIG_NETFILTER_XT_MATCH_ADDRTYPE CONFIG_BRIDGE_NETFILTER; do
+  echo "${_d}=y" >> "${EXTRA_CFG}"
+done
 
 if [ "${SUSFS_SUPPORT}" = "true" ]; then
   echo "CONFIG_KSU_SUSFS=y" >> "${EXTRA_CFG}"
